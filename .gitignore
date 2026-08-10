@@ -48,3 +48,5 @@ coverage/
 
 # Local data context (may contain sensitive company data)
 data-context/
+
+.langgraph-checkpoints/

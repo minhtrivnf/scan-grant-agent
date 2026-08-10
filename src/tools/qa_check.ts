@@ -23,6 +23,7 @@
 import * as fs from "fs";
 import AdmZip from "adm-zip";
 import ExcelJS from "exceljs";
+import { logStep } from "../logger.js";
 
 const REQUIRED_SHEETS = [
   "📊 Dashboard", "🗄️ Database", "📅 Deadlines", "⭐ Scoring", "🔗 Links & Notes",
@@ -273,6 +274,7 @@ export interface QAOptions {
 export async function run(options: QAOptions): Promise<{ ok: boolean; report: string }> {
   FAILS.length = 0;
   WARNS.length = 0;
+  logStep("qa_check_tool", "enter", options);
 
   for (const r of (options.reports || [])) {
     checkReport(r);
@@ -293,14 +295,18 @@ export async function run(options: QAOptions): Promise<{ ok: boolean; report: st
       lines.push(`⚠️  Kèm ${WARNS.length} cảnh báo (không chặn nhưng nên xem lại):`);
       for (const w of WARNS) lines.push(`   - ${w}`);
     }
-    return { ok: false, report: lines.join("\n") };
+    const report = lines.join("\n");
+    logStep("qa_check_tool", "exit", { ok: false, fails: FAILS.length, warns: WARNS.length });
+    return { ok: false, report };
   } else {
     lines.push(WARNS.length > 0 ? `✅ QA PASS (${WARNS.length} cảnh báo không chặn)` : "✅ QA PASS — không có lỗi hay cảnh báo");
     if (WARNS.length > 0) {
       lines.push(`⚠️  Cảnh báo không chặn:`);
       for (const w of WARNS) lines.push(`   - ${w}`);
     }
-    return { ok: true, report: lines.join("\n") };
+    const report = lines.join("\n");
+    logStep("qa_check_tool", "exit", { ok: true, fails: FAILS.length, warns: WARNS.length });
+    return { ok: true, report };
   }
 }
 
@@ -320,14 +326,11 @@ function parseArgs(argv: string[]): { reports: string[]; excel?: string; marketE
   return { reports, excel, marketExcel };
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const { ok, report } = await run(args);
-  console.log(report);
-  process.exit(ok ? 0 : 1);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    const args = parseArgs(process.argv.slice(2));
+    const { ok, report } = await run(args);
+    console.log(report);
+    process.exit(ok ? 0 : 1);
+  })();
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});

@@ -53,6 +53,7 @@ import {
   SUB_FONT,
   argb,
 } from "./xlsx-style-helpers.js";
+import { logStep } from "../logger.js";
 
 const ELIG_FILL: Record<string, string> = {
   "CÓ THỂ": "D9F2D9",
@@ -139,6 +140,7 @@ function todayStrDDMMYYYY(d: Date): string {
 export async function run(options: MarketScanOptions): Promise<string> {
   const payload = options.payload;
   const output = options.output;
+  logStep("market_scan_excel", "enter", { output, topic: payload.chu_de ?? null, candidates: payload.candidates?.length ?? 0 });
 
   let today = new Date();
   if (options.today) {
@@ -160,6 +162,7 @@ export async function run(options: MarketScanOptions): Promise<string> {
   const ngayScan = payload.ngay_scan || todayStrDDMMYYYY(today);
 
   fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
+  logStep("market_scan_excel", "output dir ready", path.dirname(path.resolve(output)));
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("🔍 Market Scan", { views: [{ showGridLines: false }] });
@@ -254,6 +257,7 @@ export async function run(options: MarketScanOptions): Promise<string> {
   ws.mergeCells(footerRow, 2, footerRow, 10);
 
   await wb.xlsx.writeFile(output);
+  logStep("market_scan_excel", "saved", output);
   return (
     `OK: đã tạo Excel Market Scan với ${total} candidate tại ${output} ` +
     `(Có thể-RetriV: ${canRetriv}, Có thể-VNF: ${canVnf}, Đã deep-scan: ${deepScanned}).`
@@ -278,14 +282,11 @@ function parseArgs(argv: string[]): { data: string; output: string; today?: stri
   return { data: args.data, output: args.output, today: args.today };
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const payload: MarketScanPayload = JSON.parse(fs.readFileSync(args.data, "utf-8"));
-  const result = await run({ payload, output: args.output, today: args.today });
-  console.log(result);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    const args = parseArgs(process.argv.slice(2));
+    const payload: MarketScanPayload = JSON.parse(fs.readFileSync(args.data, "utf-8"));
+    const result = await run({ payload, output: args.output, today: args.today });
+    console.log(result);
+  })();
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});

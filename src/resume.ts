@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { graph } from "./graph.js";
-import { HumanMessage } from "./messages.js";
 import { Command } from "@langchain/langgraph";
 import * as readline from "node:readline";
 
@@ -17,11 +16,11 @@ function readStdin(prompt = "\nNhập câu trả lời: "): Promise<string> {
   });
 }
 
-async function runGraph(input: any, threadId: string, config: any) {
+async function runResume(answer: string, threadId: string, config: any) {
   let interrupted = false;
   let lastChunk: any = null;
 
-  const stream = await graph.stream(input, config);
+  const stream = await graph.stream(new Command({ resume: answer }), config);
 
   for await (const chunk of stream as any) {
     if ((chunk as any).__interrupt__) {
@@ -31,7 +30,7 @@ async function runGraph(input: any, threadId: string, config: any) {
       for (const intr of interrupts) {
         console.log(intr.value?.question ?? JSON.stringify(intr.value, null, 2));
       }
-      return { interrupted, lastChunk: null, threadId };
+      return { interrupted, lastChunk: null };
     }
     lastChunk = chunk;
   }
@@ -44,34 +43,39 @@ function printResult(lastChunk: any) {
     (acc: any, val: any) => ({ ...acc, ...(val || {}) }),
     {}
   );
-  console.log("=== KẾT QUẢ ===");
+  console.log("=== KẾT QUẢ SAU RESUME ===");
   console.dir(final.messages ?? [], { depth: null });
   console.log("\n--- chatComplement ---\n");
   console.log(final.chatComplement ?? "");
 }
 
 async function main() {
-  const input = process.argv.slice(2).join(" ") ||
-    "Tôi muốn tìm các grant về foodtech và circular economy cho RetriV";
+  const threadId = process.argv[2];
+  const initialAnswer = process.argv.slice(3).join(" ");
 
-  const threadId = "thread-" + Date.now();
+  if (!threadId) {
+    console.error("Usage: node dist/resume.js <thread_id> [initial_answer]");
+    process.exit(1);
+  }
+
   const config = { configurable: { thread_id: threadId } };
-
-  let currentInput: any = { messages: [HumanMessage(input)] };
+  let answer = initialAnswer;
 
   while (true) {
-    const result = await runGraph(currentInput, threadId, config);
+    if (!answer) {
+      answer = await readStdin();
+      if (!answer) {
+        console.log("Không có câu trả lời. Thoát.");
+        process.exit(0);
+      }
+    }
+
+    const result = await runResume(answer, threadId, config);
     if (!result.interrupted) {
       printResult(result.lastChunk);
       break;
     }
-
-    const answer = await readStdin();
-    if (!answer) {
-      console.log("Không có câu trả lời. Thoát.");
-      process.exit(0);
-    }
-    currentInput = new Command({ resume: answer });
+    answer = "";
   }
 }
 

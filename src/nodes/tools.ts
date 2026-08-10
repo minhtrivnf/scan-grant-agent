@@ -1,68 +1,53 @@
+import { TOOL_DEFINITIONS } from "../tools/definitions.js";
+import { ToolMessage, type BaseMessage } from "../messages.js";
 import { GraphStateType } from "../state.js";
-import { tool } from "@langchain/core/tools";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
-import {
-  TOOL_DEFINITIONS,
-  type LogScanExcelInput,
-  type MarketScanExcelInput,
-  type QACheckInput,
-} from "../tools/definitions.js";
-import { run as runLogScan } from "../tools/log_scan_excel.js";
-import { run as runMarketScan } from "../tools/market_scan_excel.js";
-import { run as runQA } from "../tools/qa_check.js";
 
-const logScanTool = tool(
-  async (input: LogScanExcelInput) => {
-    try {
-      const result = await runLogScan(input);
-      return result;
-    } catch (err: any) {
-      return `Lỗi log_scan_excel: ${err?.message || String(err)}`;
-    }
-  },
-  {
-    name: TOOL_DEFINITIONS.log_scan_excel.name,
-    description: TOOL_DEFINITIONS.log_scan_excel.description,
-    schema: TOOL_DEFINITIONS.log_scan_excel.schema,
+async function executeTools(state: { messages: BaseMessage[] }): Promise<{ messages: BaseMessage[] }> {
+  const messages = state.messages;
+  const lastMessage = messages[messages.length - 1];
+  if (lastMessage.role !== "ai" || !lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
+    return { messages: [] };
   }
-);
 
-const marketScanTool = tool(
-  async (input: MarketScanExcelInput) => {
-    try {
-      const result = await runMarketScan(input);
-      return result;
-    } catch (err: any) {
-      return `Lỗi market_scan_excel: ${err?.message || String(err)}`;
+  const toolMessages: BaseMessage[] = [];
+  for (const call of lastMessage.tool_calls) {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === call.name);
+    if (!tool) {
+      toolMessages.push(
+        ToolMessage({
+          content: `Không tìm thấy tool: ${call.name}`,
+          tool_call_id: call.id,
+          name: call.name,
+        })
+      );
+      continue;
     }
-  },
-  {
-    name: TOOL_DEFINITIONS.market_scan_excel.name,
-    description: TOOL_DEFINITIONS.market_scan_excel.description,
-    schema: TOOL_DEFINITIONS.market_scan_excel.schema,
-  }
-);
-
-const qaCheckTool = tool(
-  async (input: QACheckInput) => {
     try {
-      const { ok, report } = await runQA(input);
-      return `[QA ${ok ? "PASS" : "FAIL"}]\n${report}`;
+      const result = await tool.invoke(call.args);
+      toolMessages.push(
+        ToolMessage({
+          content: String(result),
+          tool_call_id: call.id,
+          name: call.name,
+        })
+      );
     } catch (err: any) {
-      return `Lỗi qa_check: ${err?.message || String(err)}`;
+      toolMessages.push(
+        ToolMessage({
+          content: `Lỗi khi gọi tool ${call.name}: ${err?.message || String(err)}`,
+          tool_call_id: call.id,
+          name: call.name,
+        })
+      );
     }
-  },
-  {
-    name: TOOL_DEFINITIONS.qa_check.name,
-    description: TOOL_DEFINITIONS.qa_check.description,
-    schema: TOOL_DEFINITIONS.qa_check.schema,
   }
-);
 
-export const toolNode = new ToolNode<{ messages: GraphStateType["messages"] }>([
-  logScanTool,
-  marketScanTool,
-  qaCheckTool,
-]);
+  return { messages: toolMessages };
+}
 
+export async function toolsNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
+  return executeTools(state);
+}
+
+export const toolNode = { tools: TOOL_DEFINITIONS };
 export type ToolNodeType = typeof toolNode;

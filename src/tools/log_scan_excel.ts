@@ -24,6 +24,7 @@
  * entry.json schema: giữ nguyên schema gốc — xem SKILL.md / README.
  */
 import * as fs from "fs";
+import * as path from "path";
 import ExcelJS from "exceljs";
 import {
   NAVY,
@@ -51,6 +52,7 @@ import {
   writeRow,
   argb,
 } from "./xlsx-style-helpers.js";
+import { logStep } from "../logger.js";
 
 // ---------------------------------------------------------------------------
 // Hằng số cấu trúc — copy nguyên văn từ bản Python
@@ -245,6 +247,7 @@ function stampScoreSubheaderBlock(wsSc: ExcelJS.Worksheet) {
 
 /** Tương đương ensure_workbook(): load file có sẵn (validate schema) hoặc tạo mới đủ 6 sheet. */
 async function ensureWorkbook(outPath: string): Promise<{ wb: ExcelJS.Workbook; isNew: boolean }> {
+  logStep("log_scan_excel", "ensure workbook", outPath);
   if (fs.existsSync(outPath)) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(outPath);
@@ -597,6 +600,7 @@ export interface LogScanOptions {
 export async function run(options: LogScanOptions): Promise<string> {
   const entry = options.entry;
   const output = options.output;
+  logStep("log_scan_excel", "enter", { output, ten_chuong_trinh: entry.ten_chuong_trinh });
   if (options.today) {
     const d = typeof options.today === "string" ? parseDate(options.today) : options.today;
     if (d) TODAY = d;
@@ -682,7 +686,7 @@ export async function run(options: LogScanOptions): Promise<string> {
   if (linkVal) {
     let target = linkVal as string;
     if (fs.existsSync(linkVal)) {
-      target = "file://" + require("path").resolve(linkVal).replace(/\\/g, "/");
+      target = "file://" + path.resolve(linkVal).replace(/\\/g, "/");
     }
     linkCell.value = { text: String(linkVal), hyperlink: target } as any;
     linkCell.font = { color: { argb: argb(DARK_NAVY) }, underline: true };
@@ -732,6 +736,7 @@ export async function run(options: LogScanOptions): Promise<string> {
   moveSheetToFront(wb, DASH_SHEET);
 
   await wb.xlsx.writeFile(output);
+  logStep("log_scan_excel", "saved", output);
   return (
     `OK: đã ghi dòng ${newRowDb} (Database) / ${newRowSc} (Scoring) / ${newRowLn} (Links & Notes) ` +
     `vào ${output}; Dashboard & Deadlines đã tính lại theo ngày ${fmtDate(TODAY)}.` +
@@ -757,14 +762,11 @@ function parseArgs(argv: string[]): { data: string; output: string; today?: stri
   return { data: args.data, output: args.output, today: args.today };
 }
 
-async function main() {
-  const args = parseArgs(process.argv.slice(2));
-  const entry: LogScanEntry = JSON.parse(fs.readFileSync(args.data, "utf-8"));
-  const result = await run({ entry, output: args.output, today: args.today });
-  console.log(result);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    const args = parseArgs(process.argv.slice(2));
+    const entry: LogScanEntry = JSON.parse(fs.readFileSync(args.data, "utf-8"));
+    const result = await run({ entry, output: args.output, today: args.today });
+    console.log(result);
+  })();
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});

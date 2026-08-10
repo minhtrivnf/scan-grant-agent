@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-
+import 'dotenv/config';
 if (!process.env.AI_API_KEY) {
   throw new Error("Missing AI_API_KEY environment variable");
 }
