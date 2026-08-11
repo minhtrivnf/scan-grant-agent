@@ -50,6 +50,9 @@ export async function fanoutSelectedCandidatesNode(state: GraphStateType): Promi
   return {
     currentGrant: chosen,
     selectedCandidateQueue: remaining,
+    // Reset QA state cho từng candidate để retry counter không kế thừa giữa các candidate.
+    qaRetryCount: 0,
+    qaResult: undefined,
     chatComplement: `fanout_selected_candidates: ${queue.length} candidate(s) được chọn — bắt đầu với ${chosen.name}`,
     messages: [AIMessage({ content: `Deep-scan candidate: ${chosen.name}` })],
   };

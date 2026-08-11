@@ -28,7 +28,7 @@ async function tavilySearch(query: string, apiKey: string): Promise<TavilySearch
         query,
         search_depth: "advanced",
         include_answer: true,
-        include_raw_content: true,
+        include_raw_content: false,
         max_results: 8,
       }),
   });
@@ -57,7 +57,12 @@ export async function runSearchNode(state: GraphStateType): Promise<Partial<Grap
   logStep("run_search", "queries", queries);
 
   const allResults: TavilySearchResult[] = [];
-  for (const query of queries.slice(0, 4)) {
+  // Dùng toàn bộ queries sinh ra, tối đa 8 để đảm bảo đầy đủ dữ liệu mà vẫn có giới hạn an toàn.
+  const searchQueries = queries.slice(0, 8);
+  if (searchQueries.length < queries.length) {
+    logStep("run_search", "queries truncated", { kept: searchQueries.length, dropped: queries.length - searchQueries.length });
+  }
+  for (const query of searchQueries) {
     try {
       logStep("run_search", "tavily request", query);
       const result = await tavilySearch(query, apiKey);
@@ -83,7 +88,7 @@ export async function runSearchNode(state: GraphStateType): Promise<Partial<Grap
 
   return {
     searchResults: JSON.stringify(output, null, 2),
-    chatComplement: `run_search: ${deduped.length} unique results from Tavily (${queries.length} queries).`,
+    chatComplement: `run_search: ${deduped.length} unique results from Tavily (${searchQueries.length}/${queries.length} queries searched).`,
     messages: [AIMessage({ content: `run_search: ${deduped.length} results` })],
   };
 }

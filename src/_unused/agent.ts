@@ -2,7 +2,7 @@ import { GraphStateType } from "../state.js";
 import { openai, DEFAULT_MODEL } from "../llm.js";
 import { AIMessage, ToolMessage, isAIMessage, type BaseMessage, type ToolCall, SystemMessage } from "../messages.js";
 import { toolNode } from "./tools.js";
-import { buildSystemPrompt } from "../skills/scan-grant-vnf/instructions.js";
+import { buildSystemPrompt } from "./instructions.js";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
 
 function toOpenAIMessages(messages: BaseMessage[]): ChatCompletionMessageParam[] {

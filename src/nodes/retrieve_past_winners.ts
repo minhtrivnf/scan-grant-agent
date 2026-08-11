@@ -66,6 +66,9 @@ export async function retrievePastWinnersNode(state: GraphStateType): Promise<Pa
     `site:${domain} (winners OR winner OR cohort OR alumni OR finalists) "${name}"`,
     `site:${domain} (past winners OR previous winners OR press release) "${name}"`,
     `site:${domain} (winner OR cohort OR alumni) "${name}"`,
+    `"${name}" past winners press release`,
+    `"${name}" winner LinkedIn`,
+    `"${name}" alumni cohort industry news`,
   ];
 
   const results: TavilySearchResult[] = [];
@@ -119,7 +122,7 @@ export async function retrievePastWinnersNode(state: GraphStateType): Promise<Pa
     confidence: String(w.confidence ?? "low"),
   }));
 
-  logStep("retrieve_past_winners", "exit", { items: structured.length });
+  logStep("retrieve_past_winners", "exit", { items: structured.length, queries: queries.length, results: results.length });
 
   return {
     pastWinnersContent: sourceText,

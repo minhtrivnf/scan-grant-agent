@@ -8,6 +8,11 @@ const RESEARCH_PROMPT = `Bạn là researcher cho skill scan-grant-vnf. Nhiệm 
 2. Thu thập thông tin đầy đủ về grant từ phần [KẾT QUẢ TÌM KIẾM] và URL được cung cấp.
 3. So khớp để đánh giá eligibility, scoring, track phù hợp.
 
+Ngày hôm nay là ${new Date().toLocaleDateString("vi-VN")}. Khi đánh giá status, SO SÁNH deadline với ngày hôm nay:
+- Nếu deadline đã qua → status = "closed".
+- Nếu đang mở → status = "open".
+- Nếu chưa mở → status = "opening soon" hoặc "upcoming".
+
 Trả về JSON:
 {
   "ten_chuong_trinh": "...",
@@ -44,6 +49,8 @@ Trả về JSON:
   "next_steps": ["..."],
   "maybe_questions": ["..."],
   "retriv_vnf_note": "...",
+  "ghi_chu_1": "Nguồn xác nhận chính và độ tin cậy của thông tin (ví dụ: website chính thức, báo chí, đã xác minh/chưa xác minh)",
+  "ghi_chu_2": "Các điểm cần xác minh thêm hoặc rủi ro cần lưu ý",
   "retriv_scores": { "khop_linh_vuc": 0-10, "doi_moi": 0-10, "tac_dong_mt": 0-10, "tiem_nang_qt": 0-10, "dat_giai": 0-10 },
   "vnf_scores": { "khop_linh_vuc": 0-10, "doi_moi": 0-10, "tac_dong_mt": 0-10, "tiem_nang_qt": 0-10, "dat_giai": 0-10 }
 }
@@ -90,6 +97,43 @@ export async function researchGrantNode(state: GraphStateType): Promise<Partial<
   } catch {
     parsed = {};
   }
+
+  // Log chi tiết để theo dõi các field quan trọng có/không trong output LLM.
+  const topLevelKeys = Object.keys(parsed);
+  const importantFields = [
+    "loai", "quy_mo", "don_vi_to_chuc", "muc_do_uu_tien", "status",
+    "mo_dk", "dong_dk", "chung_ket", "dia_diem", "funding", "deadline",
+    "nha_tai_tro", "nguon_xac_nhan", "de_xuat", "ly_do_de_xuat",
+    "next_steps", "retriv_scores", "vnf_scores", "eligibility", "scoring",
+    "ghi_chu_1", "ghi_chu_2",
+  ];
+  const missing = importantFields.filter((k) => parsed[k] === undefined || parsed[k] === null || parsed[k] === "");
+  logStep("research_grant", "parsed summary", {
+    grant: name,
+    topLevelKeysCount: topLevelKeys.length,
+    hasEligibility: Boolean(parsed.eligibility && (Array.isArray(parsed.eligibility.retriv) || Array.isArray(parsed.eligibility.vnf))),
+    hasScoring: Boolean(Array.isArray(parsed.scoring) && parsed.scoring.length > 0),
+    missingImportantFields: missing,
+  });
+  logStep("research_grant", "parsed values", {
+    loai: parsed.loai,
+    quy_mo: parsed.quy_mo,
+    don_vi_to_chuc: parsed.don_vi_to_chuc,
+    muc_do_uu_tien: parsed.muc_do_uu_tien,
+    status: parsed.status,
+    mo_dk: parsed.mo_dk,
+    dong_dk: parsed.dong_dk,
+    chung_ket: parsed.chung_ket,
+    dia_diem: parsed.dia_diem,
+    funding: parsed.funding,
+    deadline: parsed.deadline,
+    nha_tai_tro: parsed.nha_tai_tro,
+    de_xuat: parsed.de_xuat,
+    ly_do_de_xuat: parsed.ly_do_de_xuat ? "(có)" : "(thiếu)",
+    next_steps: parsed.next_steps ? parsed.next_steps.length : 0,
+    retriv_scores: parsed.retriv_scores,
+    vnf_scores: parsed.vnf_scores,
+  });
 
   return {
     grantResearch: parsed,

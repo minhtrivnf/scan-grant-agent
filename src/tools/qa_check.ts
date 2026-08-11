@@ -231,9 +231,9 @@ async function checkExcel(excelPath: string) {
       fail(`Dòng ${r} ('${name}'): Đề xuất là ${deXuat} nhưng thiếu Lý do hoặc Owner follow-up`);
     }
 
-    if (!link) {
+    if (!deXuat.includes("SKIP") && !link) {
       fail(`Dòng ${r} ('${name}'): cột Link báo cáo (Word) đang trống`);
-    } else {
+    } else if (link) {
       const linkStr = String(link);
       if (linkStr.startsWith("/") || linkStr.startsWith("file://")) {
         const localPath = linkStr.replace("file://", "");

@@ -68,11 +68,14 @@ function afterResearchGrant(state: GraphStateType): string {
 }
 
 function afterCheckEligibility(state: GraphStateType): string {
-  if (state.eligibilityGatePassed === false) return "skip_and_log";
+  // Luôn qua score_and_select_track để AI điền de_xuat, ly_do_de_xuat, next_steps/owner.
+  // Ngay cả khi eligibility fail, AI vẫn phải đưa ra đề xuất SKIP kèm lý do rõ.
   return "score_and_select_track";
 }
 
 function afterScoreAndSelectTrack(state: GraphStateType): string {
+  // Luôn tạo báo cáo Word + ghi Excel log, kể cả khi đề xuất SKIP.
+  // Theo SKILL.MD, mỗi grant scan sâu cần cả 2 file.
   return "build_docx_and_log";
 }
 
@@ -86,10 +89,13 @@ function afterBuildDocxAndLog(state: GraphStateType): string {
 }
 
 function afterQACheck(state: GraphStateType): string {
+  // Ưu tiên xử lý QA result của candidate hiện tại trước khi chuyển sang candidate khác.
+  if (!state.qaResult?.pass) {
+    if (state.qaRetryCount >= 3) return "report_error";
+    return "qa_check";
+  }
   if ((state.selectedCandidateQueue ?? []).length > 0) return "fanout_selected_candidates";
-  if (state.qaResult?.pass) return END;
-  if (state.qaRetryCount >= 3) return "report_error";
-  return "build_docx_and_log";
+  return END;
 }
 
 function afterExportExcelA(state: GraphStateType): string {

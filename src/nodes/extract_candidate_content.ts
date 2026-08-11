@@ -139,7 +139,7 @@ export async function extractCandidateContentNode(state: GraphStateType): Promis
     }
 
     const combined = pageChunks.join("\n\n").slice(0, 40000);
-    logStep("extract_candidate_content", "exit", { chars: combined.length, pages: pageChunks.length });
+    logStep("extract_candidate_content", "exit", { chars: combined.length, pages: pageChunks.length, pageUrls: ranked });
 
     return {
       sourceContent: combined,

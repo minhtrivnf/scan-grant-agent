@@ -129,7 +129,7 @@ export const GraphState = Annotation.Root({
     reducer: lastOrDefault,
     default: () => undefined,
   }),
-  strategyScore: Annotation<Record<string, number> | undefined>({
+  strategyScore: Annotation<Record<string, number | string> | undefined>({
     reducer: lastOrDefault,
     default: () => undefined,
   }),

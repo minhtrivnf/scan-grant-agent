@@ -1,4 +1,4 @@
-import { TOOL_DEFINITIONS } from "../tools/definitions.js";
+import { TOOL_DEFINITIONS } from "./definitions.js";
 import { ToolMessage, type BaseMessage } from "../messages.js";
 import { GraphStateType } from "../state.js";
 
