@@ -16,7 +16,6 @@ import { extractCandidateContentNode } from "./nodes/extract_candidate_content.j
 import { retrievePastWinnersNode } from "./nodes/retrieve_past_winners.js";
 import { researchGrantNode } from "./nodes/research_grant.js";
 import { checkEligibilityNode } from "./nodes/check_eligibility.js";
-import { skipAndLogNode } from "./nodes/skip_and_log.js";
 import { scoreAndSelectTrackNode } from "./nodes/score_and_select_track.js";
 import { buildDocxAndLogNode } from "./nodes/build_docx_and_log.js";
 import { qaCheckNode } from "./nodes/qa_check.js";
@@ -77,11 +76,6 @@ function afterScoreAndSelectTrack(state: GraphStateType): string {
   // Luôn tạo báo cáo Word + ghi Excel log, kể cả khi đề xuất SKIP.
   // Theo SKILL.MD, mỗi grant scan sâu cần cả 2 file.
   return "build_docx_and_log";
-}
-
-function afterSkipAndLog(state: GraphStateType): string {
-  if ((state.selectedCandidateQueue ?? []).length > 0) return "fanout_selected_candidates";
-  return END;
 }
 
 function afterBuildDocxAndLog(state: GraphStateType): string {
@@ -147,7 +141,6 @@ const builder = new StateGraph(GraphState)
   // Mode A / deep-scan pipeline
   .addNode("research_grant", researchGrantNode)
   .addNode("check_eligibility", checkEligibilityNode)
-  .addNode("skip_and_log", skipAndLogNode)
   .addNode("score_and_select_track", scoreAndSelectTrackNode)
   .addNode("build_docx_and_log", buildDocxAndLogNode)
   .addNode("qa_check", qaCheckNode)
@@ -170,7 +163,6 @@ const builder = new StateGraph(GraphState)
   .addConditionalEdges("fanout_selected_candidates", afterFanout)
   .addConditionalEdges("research_grant", afterResearchGrant)
   .addConditionalEdges("check_eligibility", afterCheckEligibility)
-  .addConditionalEdges("skip_and_log", afterSkipAndLog)
   .addConditionalEdges("score_and_select_track", afterScoreAndSelectTrack)
   .addConditionalEdges("build_docx_and_log", afterBuildDocxAndLog)
   .addConditionalEdges("qa_check", afterQACheck)

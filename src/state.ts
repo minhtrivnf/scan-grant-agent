@@ -32,6 +32,7 @@ export interface GrantCandidate {
   geography: string;
   website: string;
   sourceNote: string; // "Claude tự tìm" | "User cung cấp link"
+  status?: "open" | "upcoming" | "closed" | "unknown";
   prelimEligibility?: { retriv: EligibilityResult[]; vnf: EligibilityResult[] };
 }
 

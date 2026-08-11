@@ -10,7 +10,7 @@ const CLASSIFY_PROMPT = `Bạn là router cho skill scan-grant-vnf. Phân loại
 - B: user chưa có tên grant cụ thể, muốn quét thị trường / tìm grant theo chủ đề/lĩnh vực/khu vực.
 - unclear: input mơ hồ, không có tên/link/chủ đề rõ ràng.
 
-Nếu mode là A, trích xuất thêm tên chương trình và URL (nếu có).
+Nếu mode là A, trích xuất thêm tên chương trình và URL (chỉ nếu user thực sự cung cấp link trong input; nếu chỉ nêu tên thì để null).
 Nếu mode là B, trích xuất chủ đề tìm kiếm.
 
 Trả về JSON chính xác:
@@ -28,6 +28,11 @@ function toOpenAIMessages(messages: any[]): ChatCompletionMessageParam[] {
     role: m.role === "human" ? "user" : m.role === "ai" ? "assistant" : m.role,
     content: m.content ?? "",
   })) as ChatCompletionMessageParam[];
+}
+
+function isUrlProvidedByUser(url: string | null | undefined, userContent: string): boolean {
+  if (!url || !url.trim().startsWith("http")) return false;
+  return userContent.includes(url.trim());
 }
 
 export async function classifyModeNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -73,6 +78,7 @@ export async function classifyModeNode(state: GraphStateType): Promise<Partial<G
   };
 
   if (mode === "A") {
+    const providedUrl = isUrlProvidedByUser(parsed.grantUrl, lastUser.content) ? parsed.grantUrl : "";
     updates.currentGrant = {
       name: parsed.grantName ?? lastUser.content,
       sponsor: "",
@@ -80,8 +86,8 @@ export async function classifyModeNode(state: GraphStateType): Promise<Partial<G
       funding: "",
       deadline: "",
       geography: "",
-      website: parsed.grantUrl ?? "",
-      sourceNote: parsed.grantUrl ? "User cung cấp link" : "Chỉ nêu tên",
+      website: providedUrl ?? "",
+      sourceNote: providedUrl ? "User cung cấp link" : "Chỉ nêu tên",
     };
   }
 
