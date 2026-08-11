@@ -13,6 +13,7 @@ import { exportExcelAAndPresentNode } from "./nodes/export_excel_a_and_present.j
 import { waitForSelectionNode } from "./nodes/wait_for_selection.js";
 import { fanoutSelectedCandidatesNode } from "./nodes/fanout_selected_candidates.js";
 import { extractCandidateContentNode } from "./nodes/extract_candidate_content.js";
+import { retrievePastWinnersNode } from "./nodes/retrieve_past_winners.js";
 import { researchGrantNode } from "./nodes/research_grant.js";
 import { checkEligibilityNode } from "./nodes/check_eligibility.js";
 import { skipAndLogNode } from "./nodes/skip_and_log.js";
@@ -55,6 +56,10 @@ function afterFindOfficialSite(state: GraphStateType): string {
 }
 
 function afterExtractCandidateContent(state: GraphStateType): string {
+  return "retrieve_past_winners";
+}
+
+function afterRetrievePastWinners(state: GraphStateType): string {
   return "research_grant";
 }
 
@@ -131,6 +136,7 @@ const builder = new StateGraph(GraphState)
   .addNode("wait_for_selection", waitForSelectionNode)
   .addNode("fanout_selected_candidates", fanoutSelectedCandidatesNode)
   .addNode("extract_candidate_content", extractCandidateContentNode)
+  .addNode("retrieve_past_winners", retrievePastWinnersNode)
 
   // Mode A / deep-scan pipeline
   .addNode("research_grant", researchGrantNode)
@@ -149,6 +155,7 @@ const builder = new StateGraph(GraphState)
   .addConditionalEdges("resolve_source", afterResolveSource)
   .addConditionalEdges("find_official_site", afterFindOfficialSite)
   .addConditionalEdges("extract_candidate_content", afterExtractCandidateContent)
+  .addConditionalEdges("retrieve_past_winners", afterRetrievePastWinners)
   .addConditionalEdges("generate_search_queries", afterGenerateQueries)
   .addConditionalEdges("run_search", afterRunSearch)
   .addConditionalEdges("extract_candidates", afterExtractCandidates)

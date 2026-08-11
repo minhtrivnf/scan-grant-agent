@@ -54,6 +54,9 @@ Trả về JSON:
 [NỘI DUNG WEBSITE]
 {{sourceContent}}
 
+[PAST WINNERS / COHORT RESEARCH]
+{{pastWinnersContent}}
+
 Không thêm nội dung ngoài JSON. Nếu thiếu thông tin, ghi "Chưa rõ — cần xác minh thủ công" thay vì đoán.`;
 
 export async function researchGrantNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -63,9 +66,13 @@ export async function researchGrantNode(state: GraphStateType): Promise<Partial<
   const context = state.companyContext ?? "Chưa nạp hồ sơ công ty.";
   const searchResults = state.searchResults ?? "Chưa có kết quả tìm kiếm.";
   const sourceContent = state.sourceContent ?? "Chưa có nội dung sạch từ website candidate.";
+  const pastWinnersContent = state.pastWinnersContent ?? "Chưa có dữ liệu past winners.";
   logStep("research_grant", "enter", { grant: name, website, contextChars: context.length, searchResultsChars: searchResults.length });
 
-  const prompt = RESEARCH_PROMPT.replace("{{companyContext}}", context).replace("{{sourceContent}}", sourceContent);
+  const prompt = RESEARCH_PROMPT
+    .replace("{{companyContext}}", context)
+    .replace("{{sourceContent}}", sourceContent)
+    .replace("{{pastWinnersContent}}", pastWinnersContent);
 
   const response = await openai.chat.completions.create({
     model: DEFAULT_MODEL,

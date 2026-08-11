@@ -109,6 +109,10 @@ export const GraphState = Annotation.Root({
     reducer: lastOrDefault,
     default: () => undefined,
   }),
+  pastWinnersContent: Annotation<string | undefined>({
+    reducer: lastOrDefault,
+    default: () => undefined,
+  }),
   grantResearch: Annotation<Record<string, unknown> | undefined>({
     reducer: lastOrDefault,
     default: () => undefined,
